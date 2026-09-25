@@ -1,27 +1,25 @@
 # Spring Boot DevOps Starter
 
-A compact production-style Spring Boot REST service demonstrating backend and DevOps fundamentals.
+A practical backend/DevOps demo: Spring Boot REST API, PostgreSQL persistence, structured JSON logs, containerized integration tests, and automated CI.
 
-## Demonstrates
+## Stack
+- Java 21, Spring Boot 3
+- Spring Data JPA + PostgreSQL 16
+- Bean Validation and centralized API error responses
+- Actuator health endpoint
+- Logback JSON logging (Logstash encoder)
+- Docker multi-stage build and Docker Compose
+- JUnit 5 + Testcontainers (real PostgreSQL for integration tests)
+- GitHub Actions Maven CI
 
-- Java 21 + Spring Boot
-- REST API and request validation
-- Centralized validation error handling
-- Spring Actuator health endpoint
-- MockMvc controller tests
-- Multi-stage Docker build
-- Docker Compose
-- GitHub Actions CI with Maven caching
-
-## Run locally
-
-Prerequisites: Java 21 and Maven 3.9+.
+## Run the stack
+Requires Docker Engine and Docker Compose.
 
 ```bash
-mvn spring-boot:run
+docker compose up --build
 ```
 
-Health check:
+API listens on http://localhost:8080. Health check:
 
 ```bash
 curl http://localhost:8080/actuator/health
@@ -30,7 +28,9 @@ curl http://localhost:8080/actuator/health
 Create a task:
 
 ```bash
-curl -X POST http://localhost:8080/api/tasks -H 'Content-Type: application/json' -d '{"title":"ship the container"}'
+curl -X POST http://localhost:8080/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"ship the container"}'
 ```
 
 List tasks:
@@ -39,26 +39,35 @@ List tasks:
 curl http://localhost:8080/api/tasks
 ```
 
-## Docker
+## Run tests
+Requires Java 21, Maven 3.9+, and Docker (Testcontainers starts PostgreSQL).
 
 ```bash
-docker compose up --build
-```
-
-## Test
-
-```bash
-mvn test
+mvn -B verify
 ```
 
 ## API
-
-| Method | Endpoint | Purpose |
+| Method | Path | Behavior |
 |---|---|---|
-| GET | /api/tasks | List tasks |
-| POST | /api/tasks | Create a task |
-| GET | /actuator/health | Health check |
+| GET | /api/tasks | List tasks ordered by ID |
+| POST | /api/tasks | Create a task (title required, max 100 chars) |
+| GET | /actuator/health | Application health |
 
-## Portfolio use
+Tasks persist in PostgreSQL with Compose. Hibernate schema auto-update is enabled for this demo; use versioned migrations such as Flyway or Liquibase before production deployment.
 
-This repo is intentionally small and is meant to be a clean public demonstration of Spring Boot, Docker, testing, and CI/CD fundamentals.
+## CI/CD
+- CI runs on pushes and pull requests to main, executes Maven verification, and runs PostgreSQL integration tests with Testcontainers.
+- Compose starts API and PostgreSQL with a database health check.
+- Docker image uses a multi-stage build and runs as a non-root user.
+
+## SonarQube / SonarCloud
+A Sonar analysis job can be enabled after configuring a Sonar project and repository secret named SONAR_TOKEN. The default CI does not require this secret.
+
+## Configuration
+| Variable | Default |
+|---|---|
+| SPRING_DATASOURCE_URL | jdbc:postgresql://localhost:5432/taskdb |
+| SPRING_DATASOURCE_USERNAME | taskuser |
+| SPRING_DATASOURCE_PASSWORD | taskpass |
+
+Compose credentials are demo-only. Use secrets or a local untracked environment file for real deployments.
