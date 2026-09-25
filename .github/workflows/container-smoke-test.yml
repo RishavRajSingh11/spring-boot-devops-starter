@@ -1,0 +1,43 @@
+name: Container smoke test
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Start API and PostgreSQL
+        run: docker compose up --build -d
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8080/actuator/health; then
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose logs
+          exit 1
+      - name: Verify task creation and persistence
+        run: |
+          response=$(curl --fail --silent --show-error -X POST http://localhost:8080/api/tasks \
+            -H 'Content-Type: application/json' \
+            -d '{"title":"smoke-test-task"}')
+          echo "$response"
+          echo "$response" | grep -q 'smoke-test-task'
+          curl --fail --silent --show-error http://localhost:8080/api/tasks | grep -q 'smoke-test-task'
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
