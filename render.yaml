@@ -1,0 +1,30 @@
+databases:
+  - name: spring-boot-devops-db
+    databaseName: taskdb
+    user: taskuser
+    plan: free
+services:
+  - type: web
+    name: spring-boot-devops-starter
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: spring-boot-devops-db
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: spring-boot-devops-db
+          property: database
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: spring-boot-devops-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: spring-boot-devops-db
+          property: password
